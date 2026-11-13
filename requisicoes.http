@@ -1,0 +1,291 @@
+### =====================================================
+### 1. CADASTROS BÁSICOS
+### =====================================================
+
+### Criar bloco
+# Esperado: 201, id 1
+POST http://localhost:8080/blocos
+Content-Type: application/json
+
+{
+    "nome": "Bloco A"
+}
+
+### Criar sala de estudo (capacidade 8)
+# Esperado: 201, id 1
+POST http://localhost:8080/salas
+Content-Type: application/json
+
+{
+    "nome": "Sala 101",
+    "andar": 1,
+    "capacidade": 8,
+    "tipo": "ESTUDO",
+    "status": "ATIVA",
+    "bloco": { "id": 1 }
+}
+
+### Criar laboratório (capacidade 30)
+# Esperado: 201, id 2
+POST http://localhost:8080/salas
+Content-Type: application/json
+
+{
+    "nome": "Lab 3",
+    "andar": 2,
+    "capacidade": 30,
+    "tipo": "LABORATORIO",
+    "status": "ATIVA",
+    "bloco": { "id": 1 }
+}
+
+### Criar outra sala de estudo
+# Esperado: 201, id 3
+POST http://localhost:8080/salas
+Content-Type: application/json
+
+{
+    "nome": "Sala 102",
+    "andar": 1,
+    "capacidade": 8,
+    "tipo": "ESTUDO",
+    "status": "ATIVA",
+    "bloco": { "id": 1 }
+}
+
+### Criar sala em manutenção
+# Esperado: 201, id 4
+POST http://localhost:8080/salas
+Content-Type: application/json
+
+{
+    "nome": "Sala 103",
+    "andar": 1,
+    "capacidade": 8,
+    "tipo": "ESTUDO",
+    "status": "EM_MANUTENCAO",
+    "bloco": { "id": 1 }
+}
+
+### Criar aluno
+# Esperado: 201, id 1
+POST http://localhost:8080/alunos
+Content-Type: application/json
+
+{
+    "nome": "Ana Souza",
+    "email": "ana@aluno.positivo.edu.br",
+    "rgm": "12345678"
+}
+
+### Criar professor
+# Esperado: 201, id 2 (aluno e professor compartilham os ids da tabela usuario!)
+POST http://localhost:8080/professores
+Content-Type: application/json
+
+{
+    "nome": "Carlos Lima",
+    "email": "carlos@positivo.edu.br",
+    "cpf": "11122233344"
+}
+
+### =====================================================
+### 2. RESERVAS QUE DEVEM FUNCIONAR
+### =====================================================
+
+### Aluno reserva sala de estudo
+# Esperado: 201, reserva id 1, status ATIVA
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 1,
+    "usuarioId": 1,
+    "inicio": "2026-11-20T10:00:00",
+    "fim": "2026-11-20T12:00:00",
+    "quantidadePessoas": 5
+}
+
+### Professor reserva laboratório
+# Esperado: 201, reserva id 2
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 2,
+    "usuarioId": 2,
+    "inicio": "2026-11-20T14:00:00",
+    "fim": "2026-11-20T16:00:00",
+    "quantidadePessoas": 25
+}
+
+### Reserva que começa quando a outra termina (caso "e" do desafio!)
+# Esperado: 201 (12h-14h NÃO conflita com 10h-12h)
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 1,
+    "usuarioId": 2,
+    "inicio": "2026-11-20T12:00:00",
+    "fim": "2026-11-20T14:00:00",
+    "quantidadePessoas": 3
+}
+
+### =====================================================
+### 3. REGRAS DE NEGÓCIO (todas devem dar 400)
+### =====================================================
+
+### Regra 1: fim antes do início
+# Esperado: 400 "O horário de fim deve ser depois do início."
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 3,
+    "usuarioId": 1,
+    "inicio": "2026-11-21T12:00:00",
+    "fim": "2026-11-21T10:00:00",
+    "quantidadePessoas": 2
+}
+
+### Regra 2: reserva no passado
+# Esperado: 400 "Não é possível reservar no passado."
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 3,
+    "usuarioId": 1,
+    "inicio": "2025-01-10T10:00:00",
+    "fim": "2025-01-10T12:00:00",
+    "quantidadePessoas": 2
+}
+
+### Regra 3: fora do horário (até 22h)
+# Esperado: 400 "Reservas só são permitidas entre 8h e 21h."
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 3,
+    "usuarioId": 1,
+    "inicio": "2026-11-21T20:00:00",
+    "fim": "2026-11-21T22:00:00",
+    "quantidadePessoas": 2
+}
+
+### Regra 4: sala em manutenção
+# Esperado: 400 "A sala está em manutenção."
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 4,
+    "usuarioId": 1,
+    "inicio": "2026-11-21T10:00:00",
+    "fim": "2026-11-21T12:00:00",
+    "quantidadePessoas": 2
+}
+
+### Regra 5: mais pessoas que a capacidade
+# Esperado: 400 "A quantidade de pessoas excede a capacidade da sala."
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 3,
+    "usuarioId": 1,
+    "inicio": "2026-11-21T10:00:00",
+    "fim": "2026-11-21T12:00:00",
+    "quantidadePessoas": 15
+}
+
+### Regra 6: aluno tentando reservar laboratório
+# Esperado: 400 "Apenas professores podem reservar laboratórios."
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 2,
+    "usuarioId": 1,
+    "inicio": "2026-11-21T10:00:00",
+    "fim": "2026-11-21T12:00:00",
+    "quantidadePessoas": 2
+}
+
+### Regra 7: sala já reservada (11h-13h bate com 10h-12h da reserva 1)
+# Esperado: 400 "A sala já está reservada nesse horário."
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 1,
+    "usuarioId": 2,
+    "inicio": "2026-11-20T11:00:00",
+    "fim": "2026-11-20T13:00:00",
+    "quantidadePessoas": 2
+}
+
+### Regra 8: aluno já tem reserva nesse horário (em outra sala)
+# Esperado: 400 "O usuário já possui uma reserva nesse horário."
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 3,
+    "usuarioId": 1,
+    "inicio": "2026-11-20T11:00:00",
+    "fim": "2026-11-20T12:00:00",
+    "quantidadePessoas": 2
+}
+
+### =====================================================
+### 4. CANCELAMENTO
+### =====================================================
+
+### Cancelar a reserva 1
+# Esperado: 200, status CANCELADA
+PATCH http://localhost:8080/reservas/1/cancelar
+
+### Cancelar de novo
+# Esperado: 400 "A reserva já está cancelada."
+PATCH http://localhost:8080/reservas/1/cancelar
+
+### Agora o aluno consegue reservar a sala 3 no horário que antes dava conflito
+# Esperado: 201 (a reserva cancelada não bloqueia mais o horário)
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 3,
+    "usuarioId": 1,
+    "inicio": "2026-11-20T11:00:00",
+    "fim": "2026-11-20T12:00:00",
+    "quantidadePessoas": 2
+}
+
+### =====================================================
+### 5. CONSULTAS E ERROS 404
+### =====================================================
+
+### Listar todas as reservas
+# Esperado: 200, 4 reservas (uma delas CANCELADA)
+GET http://localhost:8080/reservas
+
+### Reserva que não existe
+# Esperado: 404 "Reserva não encontrada: 99"
+GET http://localhost:8080/reservas/99
+
+### Reserva com usuário que não existe
+# Esperado: 404 "Usuário não encontrado: 99"
+POST http://localhost:8080/reservas
+Content-Type: application/json
+
+{
+    "salaId": 1,
+    "usuarioId": 99,
+    "inicio": "2026-11-22T10:00:00",
+    "fim": "2026-11-22T12:00:00",
+    "quantidadePessoas": 2
+}
