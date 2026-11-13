@@ -289,3 +289,20 @@ Content-Type: application/json
     "fim": "2026-11-22T12:00:00",
     "quantidadePessoas": 2
 }
+
+### ===== ERROS DE INTEGRIDADE =====
+
+### Excluir bloco que tem salas
+# Esperado depois da correção: 409
+DELETE http://localhost:8080/blocos/1
+
+### Cadastrar aluno com email repetido
+# Esperado depois da correção: 409
+POST http://localhost:8080/alunos
+Content-Type: application/json
+
+{
+    "nome": "Outra Ana",
+    "email": "ana@aluno.positivo.edu.br",
+    "rgm": "99999999"
+}
